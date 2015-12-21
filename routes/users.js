@@ -21,7 +21,7 @@ var UserAPI = require('../api/UserApi');
  * in the response body.
  */
 router.post('/login', function(req,res) {
-    UserAPI.login(req.session).then(function(result) {
+    UserAPI.login(req.models.user,req.session).then(function(result) {
         res.send(result);
     }).catch(function(err) {
         res.send(err);

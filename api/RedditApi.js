@@ -60,13 +60,14 @@ var RedditAPI = function() {
          * @param session
          * @returns {Promise}
          */
-        getAccessToken: function(session) {
+        getAccessToken: function(db,session) {
 
-            return new Promise(function(resolve,reject) {
-
+            var requestToken = new Promise(function(resolve,reject) {
+                console.info('requesting token');
                 var onComplete = function(err,resp,body) {
-                    session.accessToken = JSON.parse(body)["access_token"];
-                    resolve(body);
+                    if(err) reject(err);
+
+                    resolve(JSON.parse(body)["access_token"]);
                 };
 
                 request.post({
@@ -78,6 +79,50 @@ var RedditAPI = function() {
                     })
                 }, onComplete);
             });
+
+            var requestIdentity = function(accessToken) {
+                console.info('requesting id');
+                return new Promise(function(resolve,reject) {
+                    var onComplete = function(err, resp, body) {
+
+                        if(!err && JSON.parse(body).hasOwnProperty("name")) {
+                            resolve({identity: JSON.parse(body), access_token: accessToken});
+                        } else {
+                            reject("Unable to resolve identity");
+                        }
+                    };
+                    request.get({ url: Endpoints.ME, headers: buildReqHeaders(accessToken)}, onComplete);
+                });
+            };
+
+
+            var saveUser = function(userData) {
+                var serialize = function(accessToken,identity) {
+                    return {
+                        name: identity.name,
+                        access_token: accessToken,
+                        friends: {},
+                        identity: identity,
+                        conversations: {},
+                        photo: ""
+                    }
+                };
+
+                return new Promise(function(resolve,reject) {
+                    console.log(serialize(userData.access_token, userData.identity));
+                    db.models.user.create(serialize(userData.access_token, userData.identity), function(err,usr) {
+                        if(err) {
+                            reject(err);
+                        } else {
+                            resolve(usr);
+                        }
+                    });
+                });
+            };
+
+            return requestToken
+                .then(requestIdentity)
+                .then(saveUser);
 
         },
 

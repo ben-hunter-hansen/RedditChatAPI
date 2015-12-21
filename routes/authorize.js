@@ -50,8 +50,11 @@ router.put('/access_token', function (req, res) {
  *  the access token can now be acquired.
  */
 router.get('/access_token', function (req, res) {
-    RedditAPI.getAccessToken(req.session).then(function (tokenData) {
+    RedditAPI.getAccessToken(req.db,req.session).then(function (tokenData) {
         res.send(tokenData);
+    }).catch(function(err) {
+        console.info('failure!', err);
+        res.send(err);
     });
 });
 
